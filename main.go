@@ -47,7 +47,7 @@ func CompressBlock(s string) {
 	t0 = time.Now()
 	// Allocated a very large buffer for decompression.
 	out := make([]byte, 10*len(data))
-	n, err = lz4.UncompressBlock(compBuf.Bytes(), out)
+	n, err = lz4.UncompressBlock(buf, out)
 	if err != nil {
 		fmt.Println(err)
 	}
