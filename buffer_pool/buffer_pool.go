@@ -23,19 +23,19 @@ func PutBuffer(buf *bytes.Buffer) {
 }
 
 // Let's check later to see if this works for int[]
-// var intPool = sync.Pool{
-// 	New: func() interface{} {
-// 		return new([]int)
-// 	},
-// }
-//
-// // Fetch a new buffer from the pool
-// func GetIntArray() []int {
-// 	return intPool.Get().([]int)
-// }
-//
-// // Return a buffer to the pool
-// func PutIntArray(arr []int) {
-// 	arr = arr[0:0]
-// 	intPool.Put(arr)
-// }
+var intPool = sync.Pool{
+	New: func() interface{} {
+		return make([]int, 64<<10)
+	},
+}
+
+// Fetch a new buffer from the pool
+func GetIntArray() []int {
+	return intPool.Get().([]int)
+}
+
+// Return a buffer to the pool
+func PutIntArray(arr []int) {
+	//arr = arr[0:0]
+	intPool.Put(arr)
+}
