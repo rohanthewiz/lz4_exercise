@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
+	"lz4_exercise/buffer_pool"
 	"strings"
 	"time"
 
@@ -11,32 +11,36 @@ import (
 
 func main() {
 	println("LZ4 Compression test")
-	compressBlock("hello world")
+	CompressBlock("hello world")
+	CompressBlock("Golang is awesome!")
 }
 
-func compressBlock(s string) {
+func CompressBlock(s string) {
 	data := []byte(strings.Repeat(s, 50))
 	fmt.Println("data length is", len(data))
 
 	// COMPRESSION
 	t0 := time.Now()
-	compBuf := bytes.NewBuffer(make([]byte, len(data))) // for compressed output
+	compBuf := buffer_pool.GetBuffer()
+	defer buffer_pool.PutBuffer(compBuf) // remember to put it back
+	compBuf.Grow(len(data))
+	buf := compBuf.Bytes()
 
 	ht := make([]int, 64<<10) // buffer for the (hash) table
 
-	n, err := lz4.CompressBlock(data, compBuf.Bytes(), ht)
+	n, err := lz4.CompressBlock(data, buf[0:len(data)], ht)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	fmt.Println("Compression took", time.Since(t0))
 
-	compBuf.Truncate(n)
+	buf = buf[0:n]
 	if n == 0 || n >= len(data) {
 		fmt.Printf("`%s` is not compressible", s)
 		return
 	} else {
-		fmt.Println("Compressed length is", n, " ratio:", float64(n) / float64(len(data)))
+		fmt.Println("Compressed length is", n, " ratio:", float64(n)/float64(len(data)))
 	}
 
 	// DECOMPRESSION
