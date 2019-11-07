@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"log"
 	"lz4_exercise/buffer_pool"
-	"strings"
 	"time"
 
 	"github.com/pierrec/lz4"
@@ -11,55 +13,66 @@ import (
 
 func main() {
 	println("LZ4 Compression test")
-	CompressBlock("hello world")
-	CompressBlock("Golang is awesome!")
-	CompressBlock("God is good!")
+	b := Compress("hello world,hello world,hello world")
+	fmt.Println(Decompress(b))
+	b = Compress("God is good! God is good! God is good! God is good! ")
+	fmt.Println(Decompress(b))
 }
 
-func CompressBlock(s string) {
-	data := []byte(strings.Repeat(s, 50))
-	//log.Println("data length is", len(data))
-
-	// COMPRESSION
+func Compress(s string) (cBuf *bytes.Buffer) {
 	t0 := time.Now()
-	compBuf := buffer_pool.GetBuffer()
-	defer buffer_pool.PutBuffer(compBuf) // remember to put it back
-	compBuf.Grow(len(data))
-	buf := compBuf.Bytes()
+	rdr := bytes.NewReader([]byte(s))
+
+	cBuf = buffer_pool.GetBuffer()
+	zwriter := lz4.NewWriter(cBuf)
+	defer func() {
+		err := zwriter.Close()
+		if err != nil {
+			log.Println("error closing compress writer", err.Error())
+			return
+		}
+	}()
+	_, err := io.Copy(zwriter, rdr)
+	if err != nil {
+		log.Println("error on compress", err.Error())
+		return
+	}
 
 	// Buffer pool for hash table
-	ht := buffer_pool.GetIntArray()
-	defer buffer_pool.PutIntArray(ht)
+	// ht := buffer_pool.GetIntArray()
+	// defer buffer_pool.PutIntArray(ht)
 	//ht := make([]int, 64<<10) // buffer for the (hash) table
 
-	n, err := lz4.CompressBlock(data, buf[0:len(data)], ht)
-	if err != nil {
-		log.Println(err)
-		return
-	}
+
+	// n, err := lz4.CompressBlock(data, buf[0:len(data)], ht)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return
+	// }
 	log.Println("Compression took", time.Since(t0))
 
-	buf = buf[0:n]
-	if n == 0 || n >= len(data) {
+	if cBuf.Len() >= len([]byte(s)) { // TODO - Optimz
 		log.Printf("`%s` is not compressible", s)
 		return
-	} else {
-		log.Println("Compressed length is", n, " ratio:", float64(n)/float64(len(data)))
 	}
+	log.Println("Compressed length is", cBuf.Len(), " ratio:", float64(cBuf.Len())/float64(len([]byte(s))))
+	return
+}
 
-	// DECOMPRESSION
-	// TODO - Use buffer pool for decompression
-	t0 = time.Now()
-	// Allocated a very large buffer for decompression.
-	out := make([]byte, 10*len(data))
-	n, err = lz4.UncompressBlock(buf, out)
+func Decompress(inBuf *bytes.Buffer) (s string) {
+	defer buffer_pool.PutBuffer(inBuf) // remember to put it back
+	t0 := time.Now()
+
+	outBuf := buffer_pool.GetBuffer()
+	defer buffer_pool.PutBuffer(outBuf)
+
+	zr := lz4.NewReader(inBuf)
+	_, err := io.Copy(outBuf, zr)
 	if err != nil {
 		log.Println(err)
+		return
 	}
-	out = out[:n]
 	log.Println("Decompression took", time.Since(t0))
 
-	// Output:
-	// hello world
-	log.Println(string(out[:len(s)]))
+	return string(outBuf.Bytes())
 }
