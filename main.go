@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"lz4_exercise/buffer_pool"
 	"time"
 
 	"github.com/pierrec/lz4"
@@ -19,12 +18,12 @@ func main() {
 	fmt.Println(Decompress(b))
 }
 
-func Compress(s string) (cBuf *bytes.Buffer) {
+func Compress(s string) (cBuf bytes.Buffer) {
 	t0 := time.Now()
 	rdr := bytes.NewReader([]byte(s))
 
-	cBuf = buffer_pool.GetBuffer()
-	zwriter := lz4.NewWriter(cBuf)
+	//cBuf = buffer_pool.GetBuffer()
+	zwriter := lz4.NewWriter(&cBuf)
 	defer func() {
 		err := zwriter.Close()
 		if err != nil {
@@ -38,17 +37,6 @@ func Compress(s string) (cBuf *bytes.Buffer) {
 		return
 	}
 
-	// Buffer pool for hash table
-	// ht := buffer_pool.GetIntArray()
-	// defer buffer_pool.PutIntArray(ht)
-	//ht := make([]int, 64<<10) // buffer for the (hash) table
-
-
-	// n, err := lz4.CompressBlock(data, buf[0:len(data)], ht)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return
-	// }
 	log.Println("Compression took", time.Since(t0))
 
 	if cBuf.Len() >= len([]byte(s)) { // TODO - Optimz
@@ -59,15 +47,16 @@ func Compress(s string) (cBuf *bytes.Buffer) {
 	return
 }
 
-func Decompress(inBuf *bytes.Buffer) (s string) {
-	defer buffer_pool.PutBuffer(inBuf) // remember to put it back
+func Decompress(inBuf bytes.Buffer) (s string) {
+	//defer buffer_pool.PutBuffer(inBuf) // remember to put it back
 	t0 := time.Now()
 
-	outBuf := buffer_pool.GetBuffer()
-	defer buffer_pool.PutBuffer(outBuf)
+	var outBuf bytes.Buffer
+	//outBuf := buffer_pool.GetBuffer()
+	//defer buffer_pool.PutBuffer(outBuf)
 
-	zr := lz4.NewReader(inBuf)
-	_, err := io.Copy(outBuf, zr)
+	zr := lz4.NewReader(&inBuf)
+	_, err := io.Copy(&outBuf, zr)
 	if err != nil {
 		log.Println(err)
 		return

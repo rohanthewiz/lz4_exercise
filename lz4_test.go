@@ -15,10 +15,7 @@ func BenchmarkCompressBlock(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		Compress("Golang is amazing!Golang is amazing!Golang is amazing!Golang is amazing!Golang is amazing!")
-		Compress("Jesus, son of GodJesus, son of GodJesus, son of GodJesus, son of GodJesus, son of GodJesus, son of God")
-		Compress("Jesus, son of GodJesus, son of GodJesus, son of GodJesus, son of GodJesus, son of GodJesus, son of God")
-		Compress("Jesus, son of GodJesus, son of GodJesus, son of GodJesus, son of GodJesus, son of GodJesus, son of God")
-		Compress("Jesus, son of GodJesus, son of GodJesus, son of GodJesus, son of GodJesus, son of GodJesus, son of God")
+		Compress("Golang is amazing!Golang is amazing!Golang is amazing!Golang is amazing!Golang is amazing!")
 		Compress("Jesus, son of GodJesus, son of GodJesus, son of GodJesus, son of GodJesus, son of GodJesus, son of God")
 	}
 }
